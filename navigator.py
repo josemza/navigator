@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import timeit
 from functools import partial
+from memory_profiler import profile, memory_usage
+import copy
+import time
+
 
 class Node:
     def __init__(self, id, goal, deadend, heuristic):
@@ -123,7 +127,8 @@ class Own_graph:
 
 class algorithms():
     def __init__(self):
-        pass
+        self.clean_log('Memory_usage.log','Resultados.log')
+        self.iv_result = {}
     
     def calculate_node_value(self,node,v_nodes,grafo):
         values = np.array([1.0,1.0,1.0,1.0]) # inicializamos los valores de los 4 caminos posibles (N,S,E,W) de cada estado
@@ -157,11 +162,12 @@ class algorithms():
 
         return min(values*i), np.argmin(values*i), next_node[np.argmin(values*i)] # (menor valor, direccion, siguiente nodo)
 
-    def inicialization(self,grafo):
+    def initialization(self,grafo):
         # inicializamos los valores de los estados del grafo
         v_nodes = {} # creamos un diccionario que almacene los valores de los estados del grafo
         for node_id,node in grafo.G.nodes.items():
             v_nodes[node_id] = abs(int(node_id) - int(grafo.goal))*1.5
+        
         return v_nodes
 
     def decode_path(self,meta,path,nodo_id,dic_path= {0:'↑', 1:'↓', 2:'→', 3:'←'}):
@@ -175,18 +181,29 @@ class algorithms():
             lista = list(tup) + self.decode_path(meta,path,_nodo_id,dic_path)
             
             return lista
-        
+    
+    @profile(stream=open('Memory_usage.log','w+', encoding='utf-8'))
     def iteration_value_alg(self,grafo,delta=0.01):
-        v_nodes = self.inicialization(grafo)
-        print(f'Nodos inicializados: \n{v_nodes}\n')
-
-        table = []
-        table_arrows = []
-        arrows_dict = {0:'↑', 1:'↓', 2:'→', 3:'←'}
-        table.append(list(v_nodes.values()))
-        _delta = np.inf
-        iteracion = 0
         
+        start_time = time.time()
+
+        # Inicializamos los nodos con el metodo
+        v_nodes = self.initialization(grafo)
+
+        # Almacenamos los nodos iniciales en el diccionario de resultados
+        self.iv_result['node_init_values'] = copy.deepcopy(v_nodes)
+
+        # Definimos variables
+        table = [] # Almacena todos los valores que se van calculando para cada estado
+        table_arrows = [] # Almacena todos las direcciones que se van calculando para cada estado
+        arrows_dict = {0:'↑', 1:'↓', 2:'→', 3:'←'} # Diccionario para traducir las direccones
+        _delta = np.inf
+        iteracion = 0 # Contador para las iteraciones
+        
+        # Agregamos a la tabla de resultados los valores de inicializacion de los estados
+        table.append(list(v_nodes.values()))
+
+        # Algoritmo iteracion de valor
         while True:
             path = []
             arrows = []
@@ -199,14 +216,27 @@ class algorithms():
             table.append(list(v_nodes.values()))
             table_arrows.append(arrows)
             iteracion += 1
-            # print(list(v_nodes.values()))
 
             if max(_delta[:-1]) < delta:
-                print(f'\nNúmero de iteraciones: {iteracion}\n')
                 break
         
-        nodo_inicial = int(grafo.start) - 1
-        decoded_path = self.decode_path(grafo.goal,path,nodo_inicial)
+        end_time = time.time()
 
-        return np.array(table), np.array(table_arrows), decoded_path
+        nodo_inicial = int(grafo.start) - 1
+
+        self.iv_result['path'] = self.decode_path(grafo.goal,path,nodo_inicial)
+        self.iv_result['table_values'] = np.array(table)
+        self.iv_result['table_arrows'] = np.array(table_arrows)
+        self.iv_result['num_iterations'] = iteracion
+        self.iv_result['total_time'] = end_time - start_time
+
+        # return self.iv_result
+
+    def write_log(self,message):
+        with open('Resultados.log', 'w+', encoding='utf-8') as f:
+            f.write(message)
+    
+    def clean_log(self,*args):
+        for arg in args:
+            open(arg, 'w', encoding='utf-8')
 
