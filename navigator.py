@@ -129,6 +129,7 @@ class algorithms():
     def __init__(self):
         self.clean_log('Memory_usage.log','Resultados.log')
         self.iv_result = {}
+        self.ip_result = {}
     
     def calculate_node_value(self,node,v_nodes,grafo):
         values = np.array([1.0,1.0,1.0,1.0]) # inicializamos los valores de los 4 caminos posibles (N,S,E,W) de cada estado
@@ -240,3 +241,68 @@ class algorithms():
         for arg in args:
             open(arg, 'w', encoding='utf-8')
 
+    # Evaluación de las políticas
+    def evaluate_policy(self, grafo, policy, discount_factor=0.9, theta=0.01):
+        v_nodes = {node: 0 for node in grafo.G.nodes()}
+        while True:
+            delta = 0
+            for node in v_nodes.keys():
+                v = v_nodes[node]
+                action = policy[node]
+                v_nodes[node] = sum(
+                    grafo.G[node][neighbor][action]['probability'] * (1 + discount_factor * v_nodes[neighbor])
+                    for neighbor in grafo.G[node]
+                    if action in grafo.G[node][neighbor]
+                )
+                delta = max(delta, abs(v - v_nodes[node]))
+            if delta < theta:
+                break
+        return v_nodes
+
+    def improve_policy(self, grafo, v_nodes, policy, discount_factor=0.9):
+        policy_stable = True
+        for node in v_nodes.keys():
+            old_action = policy[node]
+            action_values = {}
+            for neighbor in grafo.G[node]:
+                for action in grafo.G[node][neighbor]:
+                    q_value = grafo.G[node][neighbor][action]['probability'] * (1 + discount_factor * v_nodes[neighbor])
+                    action_values[action] = action_values.get(action, 0) + q_value
+            best_action = max(action_values, key=action_values.get)
+            policy[node] = best_action
+            if old_action != best_action:
+                policy_stable = False
+        return policy, policy_stable
+
+    def iteration_policy_alg(self, grafo, discount_factor=0.9, theta=0.01):
+        start_time = time.time()
+
+        # Initialize a random policy
+        policy = {node: list(grafo.G[node])[0] for node in grafo.G.nodes() if grafo.G[node]}
+
+        # Almacenamos los nodos iniciales en el diccionario de resultados
+        self.ip_result['node_init_values'] = copy.deepcopy(policy)
+        
+        # Policy Iteration
+        iter_count = 0
+        while True:
+            # Policy Evaluation
+            v_nodes = self.evaluate_policy(grafo, policy, discount_factor, theta)
+            
+            # Policy Improvement
+            policy, policy_stable = self.improve_policy(grafo, v_nodes, policy, discount_factor)
+            
+            iter_count += 1
+            if policy_stable:
+                break
+
+        end_time = time.time()
+        
+        # Storing the results
+        self.ip_result['policy'] = policy
+        self.ip_result['v_nodes'] = v_nodes
+        self.ip_result['num_iterations'] = iter_count
+        self.ip_result['total_time'] = end_time - start_time
+        #self.ip_result['path'] = self.decode_path(grafo.goal, [(list(grafo.G[node])[0], node) for node in policy], int(grafo.start) - 1)
+        
+        return self.ip_result
