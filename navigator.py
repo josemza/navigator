@@ -125,9 +125,9 @@ class Own_graph:
         plt.title("Ruta en el Grafo")
         plt.show()
 
-class algorithms():
+class algorithms:
     def __init__(self):
-        self.clean_log('Memory_usage.log','Resultados.log')
+        self.clean_log('Memory_usage.log','Resultados.log','Resultados2.log')
         self.iv_result = {}
         self.ip_result = {}
     
@@ -196,7 +196,7 @@ class algorithms():
 
         # Definimos variables
         table = [] # Almacena todos los valores que se van calculando para cada estado
-        table_arrows = [] # Almacena todos las direcciones que se van calculando para cada estado
+        policy = [] # Almacena todos las direcciones que se van calculando para cada estado
         arrows_dict = {0:'↑', 1:'↓', 2:'→', 3:'←'} # Diccionario para traducir las direccones
         _delta = np.inf
         iteracion = 0 # Contador para las iteraciones
@@ -215,7 +215,7 @@ class algorithms():
                 arrows.append(arrows_dict[direction])
             _delta = np.abs(np.array(current_values)-np.array(list(v_nodes.values())))
             table.append(list(v_nodes.values()))
-            table_arrows.append(arrows)
+            policy.append(arrows)
             iteracion += 1
 
             if max(_delta[:-1]) < delta:
@@ -227,7 +227,7 @@ class algorithms():
 
         self.iv_result['path'] = self.decode_path(grafo.goal,path,nodo_inicial)
         self.iv_result['table_values'] = np.array(table)
-        self.iv_result['table_arrows'] = np.array(table_arrows)
+        self.iv_result['policy'] = np.array(policy)
         self.iv_result['num_iterations'] = iteracion
         self.iv_result['total_time'] = end_time - start_time
 
@@ -240,45 +240,129 @@ class algorithms():
     def clean_log(self,*args):
         for arg in args:
             open(arg, 'w', encoding='utf-8')
+    
+    # Inicializacion de politicas
+    def initialization_policy(self, grafo):
+        pol = {}
+        for nodo in grafo.G.nodes():
+            for neighborg in grafo.G[nodo]:
+                if neighborg != grafo.deadend:
+                    pol[nodo] = grafo.G[nodo][neighborg][0]['action']
+                    break
+        pol[grafo.deadend] = grafo.G[grafo.deadend][neighborg][0]['action']
+
+        return pol
 
     # Evaluación de las políticas
-    def evaluate_policy(self, grafo, policy, discount_factor=0.9, theta=0.01):
-        v_nodes = {node: 0 for node in grafo.G.nodes()}
-        while True:
-            delta = 0
-            for node in v_nodes.keys():
-                v = v_nodes[node]
-                action = policy[node]
-                v_nodes[node] = sum(
-                    grafo.G[node][neighbor][action]['probability'] * (1 + discount_factor * v_nodes[neighbor])
-                    for neighbor in grafo.G[node]
-                    if action in grafo.G[node][neighbor]
-                )
-                delta = max(delta, abs(v - v_nodes[node]))
+    def evaluate_policy(self, grafo, v_nodes, policy, discount_factor=0.9, theta=0.01):
+        value = 1
+        # while True:
+        delta = 0
+        for node in v_nodes.keys():
+            val_ini = 1
+            v = v_nodes[node]
+            action = policy[node]
+            # v_nodes[node] = sum(
+            #     grafo.G[node][neighbor][action]['probability'] * (1 + discount_factor * v_nodes[neighbor])
+            #     for neighbor in grafo.G[node]
+            #     if action in grafo.G[node][neighbor]
+            # )
+            for neighbor in grafo.G[node]:
+                for edge in grafo.G[node][neighbor]:
+                    if grafo.G[node][neighbor][edge]['action'] == action:
+                        val_ini += grafo.G[node][neighbor][edge]['probability']*v_nodes[neighbor]*discount_factor
+                        # if grafo.deadend != neighbor:
+                        #     next_node[0] = neighbor
+            
+            v_nodes[node] = val_ini
+
+            if grafo.G._node[node]['goal']:
+                v_nodes[node] = 0
+
+            delta = max(delta, abs(v - v_nodes[node]))
             if delta < theta:
                 break
         return v_nodes
 
     def improve_policy(self, grafo, v_nodes, policy, discount_factor=0.9):
         policy_stable = True
-        for node in v_nodes.keys():
-            old_action = policy[node]
-            action_values = {}
-            for neighbor in grafo.G[node]:
-                for action in grafo.G[node][neighbor]:
-                    q_value = grafo.G[node][neighbor][action]['probability'] * (1 + discount_factor * v_nodes[neighbor])
-                    action_values[action] = action_values.get(action, 0) + q_value
-            best_action = max(action_values, key=action_values.get)
-            policy[node] = best_action
-            if old_action != best_action:
-                policy_stable = False
-        return policy, policy_stable
+        # for node in v_nodes.keys():
+        #     old_action = policy[node]
+        #     action_values = {}
+        #     for neighbor in grafo.G[node]:
+        #         for action in grafo.G[node][neighbor]:
+        #             q_value = grafo.G[node][neighbor][action]['probability'] * (1 + discount_factor * v_nodes[neighbor])
+        #             action_values[action] = action_values.get(action, 0) + q_value
+        #     best_action = max(action_values, key=action_values.get)
+        #     policy[node] = best_action
+            
+        #     if old_action != best_action:
+        #         policy_stable = False
 
+        # next_node = [grafo.deadend,grafo.deadend,grafo.deadend,grafo.deadend]
+        actions_dict = {'N':0, 'S':1, 'E':2, 'W':3} # Diccionario para traducir las direccones
+
+        old_action = copy.deepcopy(policy)
+
+        for node in v_nodes.keys():
+            values = np.array([1.0,1.0,1.0,1.0]) # inicializamos los valores de los 4 caminos posibles (N,S,E,W) de cada estado
+            i = np.array([np.inf,np.inf,np.inf,np.inf]) # 
+            for neighbor in grafo.G[node]:
+                for edge in grafo.G[node][neighbor]:
+                    if grafo.G[node][neighbor][edge]['action'] == 'N':
+                        values[0] += grafo.G[node][neighbor][edge]['probability']*v_nodes[neighbor]*discount_factor
+                        i[0] = 1
+                        # if grafo.deadend != neighbor:
+                        #     next_node[0] = neighbor
+                    if grafo.G[node][neighbor][edge]['action'] == 'S':
+                        values[1] += grafo.G[node][neighbor][edge]['probability']*v_nodes[neighbor]*discount_factor
+                        i[1] = 1
+                        # if grafo.deadend != neighbor:
+                        #     next_node[1] = neighbor
+                    if grafo.G[node][neighbor][edge]['action'] == 'E':
+                        values[2] += grafo.G[node][neighbor][edge]['probability']*v_nodes[neighbor]*discount_factor
+                        i[2] = 1
+                        # if grafo.deadend != neighbor:
+                        #     next_node[2] = neighbor
+                    if grafo.G[node][neighbor][edge]['action'] == 'W':
+                        values[3] += grafo.G[node][neighbor][edge]['probability']*v_nodes[neighbor]*discount_factor
+                        i[3] = 1
+                        # if grafo.deadend != neighbor:
+                        #     next_node[3] = neighbor
+                    if grafo.G._node[node]['goal']:
+                        values[0] = 0
+                    
+                    values[actions_dict[policy[node]]] = v_nodes[node]
+
+            best_action = min(values*i)
+            v_nodes[node] = best_action
+
+            dir = [k for k, v in actions_dict.items() if v == list(values).index(best_action)]
+            policy[node] = dir[0]
+
+        if old_action != policy:
+            policy_stable = False
+
+        return policy, v_nodes, policy_stable
+
+    @profile(stream=open('Memory_usage_2.log','w+', encoding='utf-8'))
     def iteration_policy_alg(self, grafo, discount_factor=0.9, theta=0.01):
         start_time = time.time()
+        
+        arrows_dict = {'N':'↑', 'S':'↓', 'E':'→', 'W':'←'} # Diccionario para traducir las direccones
+        table_values = []
+        table_policies = []
+
+        # Inicializamos los valores ed los nodos en cero
+        v_nodes = self.initialization(grafo) # {node: 0 for node in grafo.G.nodes()}
+
+        table_values.append(list(v_nodes.values()))
 
         # Initialize a random policy
-        policy = {node: list(grafo.G[node])[0] for node in grafo.G.nodes() if grafo.G[node]}
+        policy = self.initialization_policy(grafo)
+
+        policy_arrows = [arrows_dict[dir] for dir in list(policy.values())]
+        table_policies.append(policy_arrows)
 
         # Almacenamos los nodos iniciales en el diccionario de resultados
         self.ip_result['node_init_values'] = copy.deepcopy(policy)
@@ -287,10 +371,15 @@ class algorithms():
         iter_count = 0
         while True:
             # Policy Evaluation
-            v_nodes = self.evaluate_policy(grafo, policy, discount_factor, theta)
+            v_nodes = self.evaluate_policy(grafo,v_nodes, policy, discount_factor, theta)
             
             # Policy Improvement
-            policy, policy_stable = self.improve_policy(grafo, v_nodes, policy, discount_factor)
+            policy, v_nodes, policy_stable = self.improve_policy(grafo, v_nodes, policy, discount_factor)
+
+            table_values.append(list(v_nodes.values()))
+
+            policy_arrows = [arrows_dict[dir] for dir in list(policy.values())]
+            table_policies.append(policy_arrows)
             
             iter_count += 1
             if policy_stable:
@@ -299,10 +388,9 @@ class algorithms():
         end_time = time.time()
         
         # Storing the results
-        self.ip_result['policy'] = policy
-        self.ip_result['v_nodes'] = v_nodes
+        self.ip_result['policy'] = np.array(table_policies)
+        self.ip_result['table_values'] = np.array(table_values)
         self.ip_result['num_iterations'] = iter_count
         self.ip_result['total_time'] = end_time - start_time
-        #self.ip_result['path'] = self.decode_path(grafo.goal, [(list(grafo.G[node])[0], node) for node in policy], int(grafo.start) - 1)
         
-        return self.ip_result
+        # return self.ip_result
