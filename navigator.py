@@ -220,14 +220,34 @@ class algorithms:
         return min(values*i), np.argmin(values*i), next_node[np.argmin(values*i)] # (menor valor, direccion, siguiente nodo)
 
     def initialization(self,grafo):
-        # inicializamos los valores de los estados del grafo
-        v_nodes = {} # creamos un diccionario que almacene los valores de los estados del grafo
+        """
+        Inicializa los valores de los estados del grafo.
+
+        Parameters:
+        - grafo: Instancia del grafo.
+
+        Returns:
+        - v_nodes: Diccionario que almacena los valores iniciales de los estados del grafo.
+        """
+        v_nodes = {} # Diccionario para almacenar los valores de los estados del grafo
         for node_id,node in grafo.G.nodes.items():
             v_nodes[node_id] = abs(int(node_id) - int(grafo.goal))*1.5
         
         return v_nodes
 
     def decode_path(self,meta,path,nodo_id,dic_path= {0:'↑', 1:'↓', 2:'→', 3:'←'}):
+        """
+        Decodifica el camino desde el nodo inicial hasta la meta.
+
+        Parameters:
+        - meta: Nodo meta.
+        - path: Camino representado como una lista de tuplas (dirección, siguiente nodo).
+        - nodo_id: ID del nodo actual.
+        - dic_path: Diccionario para traducir las direcciones (default: {0: '↑', 1: '↓', 2: '→', 3: '←'}).
+
+        Returns:
+        - lista: Lista de nodos y direcciones que representan el camino decodificado.
+        """
         if nodo_id == int(meta) -1:
             lista = []
             lista.append(meta)
@@ -241,7 +261,13 @@ class algorithms:
     
     @profile(stream=open('Memory_usage.log','w+', encoding='utf-8'))
     def iteration_value_alg(self,grafo,delta=0.01):
-        
+        """
+        Ejecuta el algoritmo de iteración de valor para determinar los valores y políticas óptimas de los nodos.
+
+        Parameters:
+        - grafo: Instancia del grafo.
+        - delta: Umbral de convergencia (default: 0.01).
+        """
         start_time = time.time()
 
         # Inicializamos los nodos con el metodo
@@ -290,15 +316,36 @@ class algorithms:
         # return self.iv_result
 
     def write_log(self,message):
+        """
+        Escribe un mensaje en el archivo de log de resultados.
+
+        Parameters:
+        - message: Mensaje a escribir en el log.
+        """
         with open('Resultados.log', 'w+', encoding='utf-8') as f:
             f.write(message)
     
     def clean_log(self,*args):
+        """
+        Limpia los archivos de log especificados.
+
+        Parameters:
+        - *args: Nombres de los archivos de log a limpiar.
+        """
         for arg in args:
             open(arg, 'w', encoding='utf-8')
     
     # Inicializacion de politicas
     def initialization_policy(self, grafo):
+        """
+        Inicializa las políticas del grafo.
+
+        Parameters:
+        - grafo: Instancia del grafo.
+
+        Returns:
+        - pol: Diccionario con la política inicial para cada nodo.
+        """
         pol = {}
         for nodo in grafo.G.nodes():
             for neighborg in grafo.G[nodo]:
@@ -311,6 +358,19 @@ class algorithms:
 
     # Evaluación de las políticas
     def evaluate_policy(self, grafo, v_nodes, policy, discount_factor=0.9, theta=0.01):
+        """
+        Evalúa la política actual del grafo.
+
+        Parameters:
+        - grafo: Instancia del grafo.
+        - v_nodes: Diccionario con los valores de los nodos.
+        - policy: Política actual.
+        - discount_factor: Factor de descuento (default: 0.9).
+        - theta: Umbral de convergencia (default: 0.01).
+
+        Returns:
+        - v_nodes: Diccionario actualizado con los valores de los nodos.
+        """
         value = 1
         # while True:
         delta = 0
@@ -341,6 +401,21 @@ class algorithms:
         return v_nodes
 
     def improve_policy(self, grafo, v_nodes, policy, discount_factor=0.9):
+        """
+        Mejora la política actual del grafo.
+
+        Parameters:
+        - grafo: Instancia del grafo.
+        - v_nodes: Diccionario con los valores de los nodos.
+        - policy: Política actual.
+        - discount_factor: Factor de descuento (default: 0.9).
+
+        Returns:
+        - tuple: (policy, v_nodes, policy_stable)
+          - policy: Política mejorada.
+          - v_nodes: Diccionario actualizado con los valores de los nodos.
+          - policy_stable: Booleano indicando si la política es estable.
+        """
         policy_stable = True
         # for node in v_nodes.keys():
         #     old_action = policy[node]
@@ -403,6 +478,14 @@ class algorithms:
 
     @profile(stream=open('Memory_usage_2.log','w+', encoding='utf-8'))
     def iteration_policy_alg(self, grafo, discount_factor=0.9, theta=0.01):
+        """
+        Ejecuta el algoritmo de iteración de políticas para determinar las políticas y valores óptimos de los nodos.
+
+        Parameters:
+        - grafo: Instancia del grafo.
+        - discount_factor: Factor de descuento (default: 0.9).
+        - theta: Umbral de convergencia (default: 0.01).
+        """
         start_time = time.time()
         
         arrows_dict = {'N':'↑', 'S':'↓', 'E':'→', 'W':'←'} # Diccionario para traducir las direccones
