@@ -11,6 +11,9 @@ import time
 
 class Node:
     def __init__(self, id, goal, deadend, heuristic):
+        """
+        Inicializa un nodo con su ID, si es el objetivo, el deadend y su heurística.
+        """
         self.id = id
         self.goal = goal
         self.deadend = deadend
@@ -18,13 +21,29 @@ class Node:
         self.adjacencies = []  # List of adjacencies
 
     def add_adjacency(self, node_name, actions):
+        """
+        Añade una adyacencia al nodo.
+        
+        Parameters:
+        - node_name: Nombre del nodo adyacente.
+        - actions: Acciones posibles y sus probabilidades.
+        """
         self.adjacencies.append((node_name, actions))
 
     def __repr__(self):
+        """
+        Representación en cadena del nodo.
+        """
         return f"Node({self.id}, Goal={self.goal}, DeadEnd={self.deadend}, Heuristic={self.heuristic}, Adjacencies={self.adjacencies})"
 
 class Own_graph:
     def __init__(self, json_file):
+        """
+        Inicializa el grafo a partir de un archivo JSON.
+        
+        Parameters:
+        - json_file: Ruta al archivo JSON que define el grafo.
+        """
         self.rows = int(json_file[json_file.find('navigator') + 9]) if 'navigator' in json_file else 5  # default to 5 columns if not specified
         self.json_file = json_file
         self.nodes = {}
@@ -37,6 +56,9 @@ class Own_graph:
         self.start = str(self.rows * (self.columns - 1) + 1)
 
     def load_nodes_from_json(self):
+        """
+        Carga los nodos desde el archivo JSON y los inicializa.
+        """
         with open(self.json_file, 'r') as file:
             data = json.load(file)
 
@@ -57,6 +79,9 @@ class Own_graph:
             self.nodes[key] = node
 
     def create_graph_from_nodes(self):
+        """
+        Crea el grafo a partir de los nodos cargados.
+        """
         # Añadir nodos
         for node_id, node in self.nodes.items():
             self.G.add_node(node_id, goal=node.goal, deadend=node.deadend, heuristic=node.heuristic)
@@ -68,6 +93,12 @@ class Own_graph:
                     self.G.add_edge(node_id, adj_name, action=action, weight=1, probability=prob)
 
     def visualize_node_and_neighbors(self, node_id):
+        """
+        Visualiza un nodo y sus vecinos en el grafo.
+        
+        Parameters:
+        - node_id: ID del nodo a visualizar.
+        """
         if node_id in self.G:
             # Crear un subgrafo con el nodo y sus vecinos
             neighbors = list(self.G.neighbors(node_id))
@@ -87,6 +118,9 @@ class Own_graph:
             print(f"El nodo con ID {node_id} no existe en el grafo.")
 
     def visualize_grid(self):
+        """
+        Visualiza el grafo en forma de una cuadrícula.
+        """
         posiciones = {}
         step_x = 1  # Espacio horizontal entre nodos
         step_y = -1  # Espacio vertical entre nodos
@@ -103,6 +137,12 @@ class Own_graph:
         plt.show()
     
     def visualize_path(self, v_path):
+        """
+        Visualiza una ruta en el grafo.
+        
+        Parameters:
+        - v_path: Lista de nodos que representan la ruta a visualizar.
+        """
         posiciones = {}
         step_x = 1  # Espacio horizontal entre nodos
         step_y = -1  # Espacio vertical entre nodos
@@ -127,11 +167,27 @@ class Own_graph:
 
 class algorithms:
     def __init__(self):
+        """
+        Inicializa la clase de algoritmos, limpiando los logs y preparando las estructuras de resultados.
+        """
         self.clean_log('Memory_usage.log','Resultados.log','Resultados2.log')
         self.iv_result = {}
         self.ip_result = {}
     
     def calculate_node_value(self,node,v_nodes,grafo):
+        """
+        Calcula el valor de un nodo basado en los valores de sus vecinos y las probabilidades de transición.
+        
+        Parameters:
+        - node: Nodo actual.
+        - v_nodes: Diccionario con los valores de los nodos.
+        - grafo: Instancia del grafo.
+
+        Returns:
+        - Menor valor calculado.
+        - Dirección óptima.
+        - Siguiente nodo óptimo.
+        """
         values = np.array([1.0,1.0,1.0,1.0]) # inicializamos los valores de los 4 caminos posibles (N,S,E,W) de cada estado
         i = np.array([np.inf,np.inf,np.inf,np.inf]) # 
         next_node = [grafo.deadend,grafo.deadend,grafo.deadend,grafo.deadend]
