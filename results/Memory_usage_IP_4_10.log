@@ -1,0 +1,55 @@
+Filename: d:\Maestria\semestre 3\Incertidumbre en IA\proyecto_1\navigator.py
+
+Line #    Mem usage    Increment  Occurences   Line Contents
+============================================================
+   348     98.0 MiB     98.0 MiB           1       @profile(stream=open('Memory_usage_2.log','w+', encoding='utf-8'))
+   349                                             def iteration_policy_alg(self, grafo, discount_factor=0.9, theta=0.01):
+   350     98.0 MiB      0.0 MiB           1           start_time = time.time()
+   351                                                 
+   352     98.0 MiB      0.0 MiB           1           arrows_dict = {'N':'↑', 'S':'↓', 'E':'→', 'W':'←'} # Diccionario para traducir las direccones
+   353     98.0 MiB      0.0 MiB           1           table_values = []
+   354     98.0 MiB      0.0 MiB           1           table_policies = []
+   355                                         
+   356                                                 # Inicializamos los valores ed los nodos en cero
+   357     98.0 MiB      0.0 MiB           1           v_nodes = self.initialization(grafo) # {node: 0 for node in grafo.G.nodes()}
+   358                                         
+   359     98.0 MiB      0.0 MiB           1           table_values.append(list(v_nodes.values()))
+   360                                         
+   361                                                 # Initialize a random policy
+   362     98.0 MiB      0.0 MiB           1           policy = self.initialization_policy(grafo)
+   363                                         
+   364     98.0 MiB      0.0 MiB          42           policy_arrows = [arrows_dict[dir] for dir in list(policy.values())]
+   365     98.0 MiB      0.0 MiB           1           table_policies.append(policy_arrows)
+   366                                         
+   367                                                 # Almacenamos los nodos iniciales en el diccionario de resultados
+   368     98.0 MiB      0.0 MiB           1           self.ip_result['node_init_values'] = copy.deepcopy(policy)
+   369                                                 
+   370                                                 # Policy Iteration
+   371     98.0 MiB      0.0 MiB           1           iter_count = 0
+   372     98.0 MiB      0.0 MiB           9           while True:
+   373                                                     # Policy Evaluation
+   374     98.0 MiB      0.0 MiB           9               v_nodes = self.evaluate_policy(grafo,v_nodes, policy, discount_factor, theta)
+   375                                                     
+   376                                                     # Policy Improvement
+   377     98.0 MiB      0.0 MiB           9               policy, v_nodes, policy_stable = self.improve_policy(grafo, v_nodes, policy, discount_factor)
+   378                                         
+   379     98.0 MiB      0.0 MiB           9               table_values.append(list(v_nodes.values()))
+   380                                         
+   381     98.0 MiB      0.0 MiB         378               policy_arrows = [arrows_dict[dir] for dir in list(policy.values())]
+   382     98.0 MiB      0.0 MiB           9               table_policies.append(policy_arrows)
+   383                                                     
+   384     98.0 MiB      0.0 MiB           9               iter_count += 1
+   385     98.0 MiB      0.0 MiB           9               if policy_stable:
+   386     98.0 MiB      0.0 MiB           1                   break
+   387                                         
+   388     98.0 MiB      0.0 MiB           1           end_time = time.time()
+   389                                                 
+   390                                                 # Storing the results
+   391     98.0 MiB      0.0 MiB           1           self.ip_result['policy'] = np.array(table_policies)
+   392     98.0 MiB      0.0 MiB           1           self.ip_result['table_values'] = np.array(table_values)
+   393     98.0 MiB      0.0 MiB           1           self.ip_result['num_iterations'] = iter_count
+   394     98.0 MiB      0.0 MiB           1           self.ip_result['total_time'] = end_time - start_time
+   395                                                 
+   396                                                 # return self.ip_result
+
+

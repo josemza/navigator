@@ -1,0 +1,55 @@
+Filename: d:\Maestria\semestre 3\Incertidumbre en IA\proyecto_1\navigator.py
+
+Line #    Mem usage    Increment  Occurences   Line Contents
+============================================================
+   186     97.9 MiB     97.9 MiB           1       @profile(stream=open('Memory_usage.log','w+', encoding='utf-8'))
+   187                                             def iteration_value_alg(self,grafo,delta=0.01):
+   188                                                 
+   189     97.9 MiB      0.0 MiB           1           start_time = time.time()
+   190                                         
+   191                                                 # Inicializamos los nodos con el metodo
+   192     97.9 MiB      0.0 MiB           1           v_nodes = self.initialization(grafo)
+   193                                         
+   194                                                 # Almacenamos los nodos iniciales en el diccionario de resultados
+   195     97.9 MiB      0.0 MiB           1           self.iv_result['node_init_values'] = copy.deepcopy(v_nodes)
+   196                                         
+   197                                                 # Definimos variables
+   198     97.9 MiB      0.0 MiB           1           table = [] # Almacena todos los valores que se van calculando para cada estado
+   199     97.9 MiB      0.0 MiB           1           policy = [] # Almacena todos las direcciones que se van calculando para cada estado
+   200     97.9 MiB      0.0 MiB           1           arrows_dict = {0:'↑', 1:'↓', 2:'→', 3:'←'} # Diccionario para traducir las direccones
+   201     97.9 MiB      0.0 MiB           1           _delta = np.inf
+   202     97.9 MiB      0.0 MiB           1           iteracion = 0 # Contador para las iteraciones
+   203                                                 
+   204                                                 # Agregamos a la tabla de resultados los valores de inicializacion de los estados
+   205     97.9 MiB      0.0 MiB           1           table.append(list(v_nodes.values()))
+   206                                         
+   207                                                 # Algoritmo iteracion de valor
+   208     98.0 MiB      0.0 MiB          44           while True:
+   209     98.0 MiB      0.0 MiB          44               path = []
+   210     98.0 MiB      0.0 MiB          44               arrows = []
+   211     98.0 MiB      0.0 MiB          44               current_values = list(v_nodes.values())
+   212     98.0 MiB      0.0 MiB        1848               for key, value in v_nodes.items():
+   213     98.0 MiB      0.1 MiB        1804                   v_nodes[key], direction, next_node = self.calculate_node_value(str(key),v_nodes,grafo)
+   214     98.0 MiB      0.0 MiB        1804                   path.append((direction, next_node))
+   215     98.0 MiB      0.0 MiB        1804                   arrows.append(arrows_dict[direction])
+   216     98.0 MiB      0.0 MiB          44               _delta = np.abs(np.array(current_values)-np.array(list(v_nodes.values())))
+   217     98.0 MiB      0.0 MiB          44               table.append(list(v_nodes.values()))
+   218     98.0 MiB      0.0 MiB          44               policy.append(arrows)
+   219     98.0 MiB      0.0 MiB          44               iteracion += 1
+   220                                         
+   221     98.0 MiB      0.0 MiB          44               if max(_delta[:-1]) < delta:
+   222     98.0 MiB      0.0 MiB           1                   break
+   223                                                 
+   224     98.0 MiB      0.0 MiB           1           end_time = time.time()
+   225                                         
+   226     98.0 MiB      0.0 MiB           1           nodo_inicial = int(grafo.start) - 1
+   227                                         
+   228     98.0 MiB      0.0 MiB           1           self.iv_result['path'] = self.decode_path(grafo.goal,path,nodo_inicial)
+   229     98.0 MiB      0.0 MiB           1           self.iv_result['table_values'] = np.array(table)
+   230     98.0 MiB      0.0 MiB           1           self.iv_result['policy'] = np.array(policy)
+   231     98.0 MiB      0.0 MiB           1           self.iv_result['num_iterations'] = iteracion
+   232     98.0 MiB      0.0 MiB           1           self.iv_result['total_time'] = end_time - start_time
+   233                                         
+   234                                                 # return self.iv_result
+
+
